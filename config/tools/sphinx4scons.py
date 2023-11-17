@@ -80,14 +80,12 @@ def _detect(env):
     except KeyError:
         pass
 
-    sphinx = env.WhereIs('sphinx-build')
-    if sphinx:
+    if sphinx := env.WhereIs('sphinx-build'):
         return sphinx
 
     raise SCons.Errors.StopError(
         SphinxBuilderNotFound,
         "Could not detect sphinx-build script")
-    return None
 
 
 def generate(env):
@@ -135,17 +133,13 @@ def Sphinx(env, target, source, **kw):
     builder = env['BUILDERS']['Sphinx4Scons']
     env_kw = env.Override(kw)
     options = _get_sphinxoptions(env_kw, target, source)
-    output = builder(env, target, source, _SPHINXOPTIONS=options, **kw)
-    return output
+    return builder(env, target, source, _SPHINXOPTIONS=options, **kw)
 
 
 def _get_sphinxoptions(env, target, source):
     """Concatenates all the options for the sphinx command line."""
-    options = []
-
     builder = _get_sphinxbuilder(env)
-    options.append("-b %s" % env.subst(builder, target=target, source=source))
-
+    options = ["-b %s" % env.subst(builder, target=target, source=source)]
     flags = env.get('options', env.get('SPHINXFLAGS', ''))
     options.append(env.subst(flags, target=target, source=source))
 
@@ -156,7 +150,7 @@ def _get_sphinxoptions(env, target, source):
         for tag in tags:
             if tag != '':
                 tag = env.subst(tag, target=target, source=source)
-                options.append("-t %s" % tag)
+                options.append(f"-t {tag}")
 
     settings = env.get('settings', env.get('SPHINXSETTINGS', None))
     if settings is not None:
@@ -165,19 +159,21 @@ def _get_sphinxoptions(env, target, source):
         for key, value in settings.iteritems():
             if value != '':
                 value = env.subst(value, target=target, source=source)
-                options.append('-D "%s=%s"' % (key, value))
+                options.append(f'-D "{key}={value}"')
 
     doctree = env.get('doctree', env.get("SPHINXDOCTREE", None))
     if isinstance(doctree, SCons.Node.FS.Dir):
-        options.append("-d %s" % doctree.get_abspath())
+        options.append(f"-d {doctree.get_abspath()}")
     elif doctree is not None and doctree != '':
         doctree = env.subst(doctree, target=target, source=source)
-        options.append("-d %s" % env.Dir(doctree).get_abspath())
+        options.append(f"-d {env.Dir(doctree).get_abspath()}")
 
     config = _get_sphinxconfig_path(env, None)
     if config is not None and config != '':
         config = env.subst(config, target=target, source=source)
-        options.append("-c %s" % env.Dir(config).File('conf.py').rfile().dir.get_abspath())
+        options.append(
+            f"-c {env.Dir(config).File('conf.py').rfile().dir.get_abspath()}"
+        )
     return " ".join(options)
 
 
@@ -204,11 +200,7 @@ def sphinx_emitter(target, source, env):
     srcnode = source[0]
 
     configdir = _get_sphinxconfig_path(env, None)
-    if not configdir:
-        confignode = srcnode
-    else:
-        confignode = env.Dir(configdir)
-
+    confignode = srcnode if not configdir else env.Dir(configdir)
     srcinfo = SourceInfo(srcnode, confignode, env)
     targets, sources = _get_emissions(env, target, srcinfo)
     env.Clean(targets, target[0])
@@ -326,10 +318,7 @@ class SourceInfo(object):
 
 
     def _anymatch(self, matchers, item):
-        for matcher in matchers:
-            if matcher(item):
-                return True
-        return False
+        return any(matcher(item) for matcher in matchers)
 
 
 def _get_sphinxconfig_path(env, default):
@@ -422,10 +411,10 @@ def _get_dirhtml_emissions(env, target, srcinfo):
         pagename = os.path.splitext(pagename)[0]
 
         #Special treatment of files named "index". Don't create directory.
-        if pagename == 'index' or pagename.endswith(os.sep + 'index'):
+        if pagename == 'index' or pagename.endswith(f'{os.sep}index'):
             outfilename = pagename + suffix
         else:
-            outfilename = os.path.join(pagename, 'index' + suffix)
+            outfilename = os.path.join(pagename, f'index{suffix}')
         return outfilename
 
     sources = []
@@ -461,16 +450,16 @@ def _get_epub_emissions(env, target, srcinfo):
     sources.extend(srcinfo.sources)
     sources.extend([srcinfo.srcroot.File(os_path(f[0])) for f in epubPreFiles])
     sources.extend([srcinfo.srcroot.File(os_path(f[0])) for f in epubPostFiles])
-    if not (epubCover[0] is None or epubCover[0] == ''):
+    if epubCover[0] is not None and epubCover[0] != '':
         sources.append(srcinfo.srcroot.File(os_path(epubCover[0])))
-    if not (epubCover[1] is None or epubCover[1] == ''):
+    if epubCover[1] is not None and epubCover[1] != '':
         sources.append(srcinfo.srcroot.File(os_path(epubCover[1])))
 
     t = srcinfo.config.get('epub_basename',
                         srcinfo.config.get('project',
                                          'Python'))
 
-    targets = [target[0].File("%s.epub" % make_filename(t))]
+    targets = [target[0].File(f"{make_filename(t)}.epub")]
 
     return targets, sources
 
@@ -481,8 +470,8 @@ def _get_gettext_emissions(env, target, srcinfo):
 
     targets = [os.path.relpath(str(s), str(srcinfo.srcroot)) for s in sources]
     targets = [os.path.splitext(t)[0] for t in targets]
-    targets = set([t.split(os.sep)[0] for t in targets])
-    targets = [target[0].File(t + ".pot") for t in targets]
+    targets = {t.split(os.sep)[0] for t in targets}
+    targets = [target[0].File(f"{t}.pot") for t in targets]
 
     return targets, sources
 
@@ -521,8 +510,10 @@ def _get_linkcheck_emissions(env, target, srcinfo):
 def _get_man_emissions(env, target, srcinfo):
     sources = []
     sources.extend(srcinfo.sources)
-    targets = map(lambda x: target[0].File(os_path("%s.%s" % (x[1], x[4]))),
-                  srcinfo.config.get('man_pages'))
+    targets = map(
+        lambda x: target[0].File(os_path(f"{x[1]}.{x[4]}")),
+        srcinfo.config.get('man_pages'),
+    )
     return targets, sources
 
 
@@ -541,9 +532,10 @@ def _get_serialize_emissions(env, target, srcinfo, suffix=None, extrafiles=[]):
         t = os.path.relpath(t, str(srcinfo.srcroot))
         targets.append(t)
 
-    for key in srcinfo.config.get('html_additional_pages', {}):
-        targets.append(os_path("%s%s" % (key, suffix)))
-
+    targets.extend(
+        os_path(f"{key}{suffix}")
+        for key in srcinfo.config.get('html_additional_pages', {})
+    )
     targets.extend(extrafiles)
     targets = [target[0].File(t) for t in targets]
 
@@ -573,8 +565,10 @@ def _get_texinfo_emissions(env, target, srcinfo):
     sources.extend(map(lambda x: source[0].File(os_path(x + suffix)),
                        srcinfo.config.get('texinfo_appendices', [])))
 
-    targets = map(lambda x: target[0].File(os_path("%s.texi" % x[1])),
-                  srcinfo.config.get('texinfo_documents'))
+    targets = map(
+        lambda x: target[0].File(os_path(f"{x[1]}.texi")),
+        srcinfo.config.get('texinfo_documents'),
+    )
 
     return targets, sources
 
@@ -586,7 +580,7 @@ def _get_text_emissions(env, target, srcinfo):
     targets = []
     for s in sources:
         t = os.path.relpath(str(s), str(srcinfo.srcroot))
-        t = os.path.splitext(t)[0] + ".txt"
+        t = f"{os.path.splitext(t)[0]}.txt"
         targets.append(target[0].File(t))
 
     return targets, sources

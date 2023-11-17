@@ -18,9 +18,10 @@ class features:
     @staticmethod
     def architecture(env, arch):
         if arch:
-            flag = {'x86' :    '/MACHINE:X86',
-                    'x86_64' : '/MACHINE:X64',}.get(arch)
-            if flag:
+            if flag := {
+                'x86': '/MACHINE:X86',
+                'x86_64': '/MACHINE:X64',
+            }.get(arch):
                 append_feature_flag(env, LINKFLAGS = flag)
 
     @staticmethod

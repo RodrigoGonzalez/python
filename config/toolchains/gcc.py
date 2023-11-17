@@ -17,9 +17,10 @@ class features:
     @staticmethod
     def architecture(env, arch):
         if arch:
-            flag = {'x86' :    '-m32',
-                    'x86_64' : '-m64',}.get(arch)
-            if flag:
+            if flag := {
+                'x86': '-m32',
+                'x86_64': '-m64',
+            }.get(arch):
                 append_feature_flag(env, CCFLAGS = flag)
     
     @staticmethod

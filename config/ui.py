@@ -31,15 +31,13 @@ def variables_help(vars, env):
     """This is cloned from SCons' Variables.GenerateHelpText, to only report 'public' variables."""
 
     opts = [o for o in vars.options if o.key in variables]
-    
+
     def format(opt):
-        if opt.key in env:
-            actual = env.subst('${%s}' % opt.key)
-        else:
-            actual = None
+        actual = env.subst('${%s}' % opt.key) if opt.key in env else None
         return vars.FormatVariableHelpText(env, opt.key, opt.help, opt.default, actual, opt.aliases)
+
     text = ''.join([f for f in map(format, opts) if f])
-    lines = ['  %s'%l for l in text.split('\n')] # Add some indentation
+    lines = [f'  {l}' for l in text.split('\n')]
     return '\n'.join(lines)
 
 
@@ -58,18 +56,18 @@ available variables:
 
 def pretty_output(env):
 
-    colors = {}
-    colors['red']    = '\033[31m'
-    colors['green']  = '\033[32m'
-    colors['blue']   = '\033[34m'
-    colors['yellow'] = '\033[93m'
-    colors['Red']    = '\033[91m'
-    colors['Green']  = '\033[92m'
-    colors['Blue']   = '\033[94m'
-    colors['Purple'] = '\033[95m'
-    colors['Cyan']   = '\033[96m'
-    colors['end']    = '\033[0m'
-
+    colors = {
+        'red': '\033[31m',
+        'green': '\033[32m',
+        'blue': '\033[34m',
+        'yellow': '\033[93m',
+        'Red': '\033[91m',
+        'Green': '\033[92m',
+        'Blue': '\033[94m',
+        'Purple': '\033[95m',
+        'Cyan': '\033[96m',
+        'end': '\033[0m',
+    }
     #If the output is not a terminal, remove the colors
     if not sys.stdout.isatty():
         for key, value in colors.iteritems():

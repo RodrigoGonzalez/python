@@ -18,16 +18,12 @@ def BoostCompileTest(env, test, source = None, **kw):
 
     def gen_result(target, source, env=env):
         target_file = target[0].abspath
-        result_file = os.path.splitext(target_file)[0] + '.result'
-        if sys.stdout.isatty():
-            env['RESULT']='\033[92mPASS\033[0m'
-        else:
-            env['RESULT']='PASS'
-
+        result_file = f'{os.path.splitext(target_file)[0]}.result'
+        env['RESULT'] = '\033[92mPASS\033[0m' if sys.stdout.isatty() else 'PASS'
         with open(result_file, 'w+') as result:
             result.write('Result: {}\n'.format('pass'))
 
-    obj = env.Object(test, source if source is not None else test + '.cpp')
+    obj = env.Object(test, source if source is not None else f'{test}.cpp')
     env.AddPostAction(obj, Action(gen_result, cmdstr=None))
     env.AddPostAction(obj, Action('@echo $RESULT'))
     return obj
@@ -66,10 +62,9 @@ def BoostRunPythonScript(env, script):
 
 
 def BoostRunTest(env, test, source = None, command = '$SOURCE', command_sources = [], **kw):
-    test_prog = env.Program(test, (source is None) and (test + ".cpp") or source, **kw)
+    test_prog = env.Program(test, source is None and f"{test}.cpp" or source, **kw)
     command += '> $TARGET'
-    run = env.BoostRun([test_prog, command_sources], test + '.result', command)
-    return run
+    return env.BoostRun([test_prog, command_sources], f'{test}.result', command)
 
 
 def BoostRunTests(env, tests, **kw):
@@ -89,9 +84,15 @@ def BoostTestSummary(env, tests, **kw):
 
     def print_summary(target, source, **kw):
         results = tests
-        failures = [r for r in results
-                    if r.get_path().endswith('.result') and not 'Result: pass' in r.get_contents()]
-        print('%s tests; %s pass; %s fails'%(len(results), len(results)-len(failures), len(failures)))
+        failures = [
+            r
+            for r in results
+            if r.get_path().endswith('.result')
+            and 'Result: pass' not in r.get_contents()
+        ]
+        print(
+            f'{len(results)} tests; {len(results) - len(failures)} pass; {len(failures)} fails'
+        )
         if failures:
             print('For detailed failure reports, see:')
         for f in failures:

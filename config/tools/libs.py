@@ -13,9 +13,13 @@ import platform
 
 def BoostLibrary(env, lib, sources, make_aliases = True, **kw):
     if env["LINK_DYNAMIC"]:
-        lib_node = env.SharedLibrary("boost_" + lib + env["BOOST_SUFFIX"], sources, **kw)
+        lib_node = env.SharedLibrary(
+            f"boost_{lib}" + env["BOOST_SUFFIX"], sources, **kw
+        )
     else:
-        lib_node = env.StaticLibrary("boost_" + lib + env["BOOST_SUFFIX"], sources, **kw)
+        lib_node = env.StaticLibrary(
+            f"boost_{lib}" + env["BOOST_SUFFIX"], sources, **kw
+        )
 
     if make_aliases:
         if env.GetOption("stage"):
@@ -31,8 +35,9 @@ def BoostLibrary(env, lib, sources, make_aliases = True, **kw):
 
 def BoostUseLib(env, lib):
     build_dir = env.Dir('$BOOST_CURRENT_VARIANT_DIR/src')
-    env.AppendUnique(LIBPATH = [build_dir],
-                     LIBS = ["boost_" + lib + env["BOOST_SUFFIX"]])
+    env.AppendUnique(
+        LIBPATH=[build_dir], LIBS=[f"boost_{lib}" + env["BOOST_SUFFIX"]]
+    )
     if env.get("BOOST_TEST"):
         env.AppendUnique(RPATH = [build_dir])
         if platform.system() == 'Windows':
@@ -43,8 +48,13 @@ def BoostUseLib(env, lib):
 
 def PythonExtension(env, lib, sources, **kw):
     if env["LINK_DYNAMIC"]:
-        ext = env.SharedLibrary(lib, sources, SHLIBPREFIX='', SHLIBSUFFIX=distutils.sysconfig.get_config_var("SO"), **kw)
-        return ext
+        return env.SharedLibrary(
+            lib,
+            sources,
+            SHLIBPREFIX='',
+            SHLIBSUFFIX=distutils.sysconfig.get_config_var("SO"),
+            **kw
+        )
 
 
 def boost_copy_func(dest, source, env):
@@ -53,7 +63,10 @@ def boost_copy_func(dest, source, env):
     if os.path.isdir(source):
         if os.path.exists(dest):
             if not os.path.isdir(dest):
-                raise SCons.Errors.UserError, "cannot overwrite non-directory `%s' with a directory `%s'" % (str(dest), str(source))
+                raise (
+                    SCons.Errors.UserError,
+                    f"cannot overwrite non-directory `{str(dest)}' with a directory `{str(source)}'",
+                )
         else:
             os.makedirs(dest)
         for file in os.listdir(source):

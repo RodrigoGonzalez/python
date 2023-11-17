@@ -36,7 +36,7 @@ int main()
         return subprocess.check_output([python, '-c', cmd]).strip()
 
     def check_sysconfig(cmd):
-        r = check_python('import distutils.sysconfig as c; print(c.%s)'%cmd)
+        r = check_python(f'import distutils.sysconfig as c; print(c.{cmd})')
         return r if r != 'None' else ''
 
     context.Message('Checking for Python...')
@@ -47,9 +47,9 @@ int main()
     if platform.system() == 'Windows':
         version = check_python('import sys; print("%d%d"%sys.version_info[0:2])')
         prefix = check_python('import sys; print(sys.prefix)')
-        libfile = os.path.join(prefix, 'libs', 'python%s.lib'%version)
+        libfile = os.path.join(prefix, 'libs', f'python{version}.lib')
         libpath = os.path.join(prefix, 'libs')
-        lib = 'python%s'%version
+        lib = f'python{version}'
         context.env.AppendUnique(LIBS=[lib])
     else:
         libpath = check_sysconfig('get_config_var("LIBDIR")')
@@ -77,14 +77,14 @@ int main()
         while frameworkDir and frameworkDir != "/":
             frameworkDir, d2 = os.path.split(frameworkDir)
             if d2 == "Python.framework":
-                if not "Python" in os.listdir(os.path.join(frameworkDir, d2)):
+                if "Python" not in os.listdir(os.path.join(frameworkDir, d2)):
                     context.Result(0)
-                    print((
-                        "Expected to find Python in framework directory %s, but it isn't there"
-                        % frameworkDir))
+                    print(
+                        f"Expected to find Python in framework directory {frameworkDir}, but it isn't there"
+                    )
                     return False
                 break
-        context.env.AppendUnique(LINKFLAGS="-F%s" % frameworkDir)
+        context.env.AppendUnique(LINKFLAGS=f"-F{frameworkDir}")
         result = context.TryLink(python_source_file,'.cpp')
     if not result:
         context.Result(0)

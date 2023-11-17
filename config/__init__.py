@@ -79,9 +79,9 @@ def boost_suffix(env):
     if env["layout"] == "versioned":
         if "gcc" in env["TOOLS"]:
             if env['CXX'] in ('clang', 'clang++'):
-                suffix += "-clang" + "".join(env["CXXVERSION"].split(".")[0:2])
+                suffix += "-clang" + "".join(env["CXXVERSION"].split(".")[:2])
             else: # assume g++
-                suffix += "-gcc" + "".join(env["CXXVERSION"].split(".")[0:2])
+                suffix += "-gcc" + "".join(env["CXXVERSION"].split(".")[:2])
     if env["THREADING"] == "multi":
         suffix += "-mt"
     if env["DEBUG"]:
@@ -101,16 +101,16 @@ def prepare_build_dir(env):
     #        For now, we simply check whether $CXX refers to clang or gcc.
     if "gcc" in env["TOOLS"]:
         if env['CXX'] in ('clang', 'clang++'):
-            build_dir+="/clang-%s"%env["CXXVERSION"]
+            build_dir += f'/clang-{env["CXXVERSION"]}'
         else: # assume g++
-            build_dir+="/gcc-%s"%env["CXXVERSION"]
+            build_dir += f'/gcc-{env["CXXVERSION"]}'
         default_cxxflags = ['-ftemplate-depth-128', '-Wall', '-g', '-O2']
         vars['CXXFLAGS'] = env.get('CXXFLAGS', default_cxxflags)
     elif "msvc" in env["TOOLS"]:
-        build_dir+="/msvc-%s"%env["MSVS_VERSION"]
+        build_dir += f'/msvc-{env["MSVS_VERSION"]}'
     vars['BOOST_BUILD_DIR'] = build_dir
     vars['BOOST_SUFFIX'] = "${boost_suffix(__env__)}"
-    env.Replace(**vars)    
+    env.Replace(**vars)
     return build_dir
 
 
@@ -130,10 +130,7 @@ def variants(env):
             set_property(e, optimize = "speed", profile = True, debug = True)
         for linking in env["link"]:
             e["linking"] = linking
-            if linking == "dynamic":
-                e["LINK_DYNAMIC"] = True
-            else:
-                e["LINK_DYNAMIC"] = False
+            e["LINK_DYNAMIC"] = linking == "dynamic"
             for threading in e["threading"]:
                 e["current_threading"] = threading
                 set_property(e, threading = threading)

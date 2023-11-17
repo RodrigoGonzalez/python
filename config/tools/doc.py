@@ -27,18 +27,24 @@ def BoostBook(env, target, source, resources=[], args=[]):
     """Compile a BoostBook document to DocBook."""
 
     bb_prefix = env.GetOption('boostbook_prefix')
-    stylesheet = bb_prefix + '/xsl/docbook.xsl'
-    env.Command(target, source,
-                'xsltproc {} -o $TARGET {} $SOURCE'.format(' '.join(args), stylesheet))
+    stylesheet = f'{bb_prefix}/xsl/docbook.xsl'
+    env.Command(
+        target,
+        source,
+        f"xsltproc {' '.join(args)} -o $TARGET {stylesheet} $SOURCE",
+    )
 
 
 def BoostHTML(env, target, source, resources=[], args=[]):
     """Compile a DocBook document to HTML."""
 
     bb_prefix = env.GetOption('boostbook_prefix')
-    stylesheet = bb_prefix + '/xsl/html.xsl'
-    env.Command(target, source,
-                'xsltproc {} -o $TARGET/ {} $SOURCE'.format(' '.join(args), stylesheet))
+    stylesheet = f'{bb_prefix}/xsl/html.xsl'
+    env.Command(
+        target,
+        source,
+        f"xsltproc {' '.join(args)} -o $TARGET/ {stylesheet} $SOURCE",
+    )
     prefix=Dir('.').path
     for r in resources:
         r = File(r).path[len(prefix)+1:]
@@ -52,8 +58,8 @@ def BoostRST(env, target, source, resources=[]):
     prefix=Dir('.').path
     for r in resources:
         r = File(r).path[len(prefix)+1:]
-        env.Depends('html/' + r, r)
-        env.Command('html/' + r, r, Copy('$TARGET', '$SOURCE'))
+        env.Depends(f'html/{r}', r)
+        env.Command(f'html/{r}', r, Copy('$TARGET', '$SOURCE'))
     env.Command(target, source,
                 'rst2html --link-stylesheet --traceback --trim-footnote-reference-space --footnote-references=superscript --stylesheet=rst.css $SOURCE $TARGET')
 

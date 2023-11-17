@@ -36,8 +36,7 @@ def generate(env):
         if pipe.wait() != 0: return
         # clang -dumpversion is of no use
         line = pipe.stdout.readline()
-        match = re.search(r'clang +version +([0-9]+(?:\.[0-9]+)+)', line)
-        if match:
+        if match := re.search(r'clang +version +([0-9]+(?:\.[0-9]+)+)', line):
             env['CCVERSION'] = match.group(1)
 
 def exists(env):
